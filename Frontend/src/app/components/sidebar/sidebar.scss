@@ -339,7 +339,7 @@
 .user-name {
   font-size: 0.875rem;
   font-weight: 500;
-  color: rgb(209, 209, 209);
+  color: hsl(var(--foreground));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

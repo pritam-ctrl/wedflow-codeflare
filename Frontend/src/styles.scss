@@ -80,49 +80,49 @@ body {
 /* Light mode overrides */
 html.light,
 html.light body {
-  background: linear-gradient(180deg, #f5f5f5 0%, #ffffff 100%);
+   background: linear-gradient(180deg, #e6e4e0 0%, #dedcd7 100%);
   color: #1a1a1a;
 }
 
 html.light {
-  --background: 0 0% 98%;
-  --foreground: 0 0% 9%;
-  --card: 0 0% 100%;
-  --card-foreground: 0 0% 9%;
-  --card-border: 0 0% 90%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 9%;
-  --popover-border: 0 0% 90%;
+  --background: 40 8% 89%;
+  --foreground: 0 0% 12%;
+  --card: 40 10% 93%;
+  --card-foreground: 0 0% 12%;
+  --card-border: 40 8% 80%;
+  --popover: 40 10% 93%;
+  --popover-foreground: 0 0% 12%;
+  --popover-border: 40 8% 80%;
   --primary: 43 90% 52%;
   --primary-foreground: 0 0% 5%;
   --primary-border: #f3b4164d;
-  --secondary: 0 0% 96%;
-  --secondary-foreground: 0 0% 9%;
-  --secondary-border: 0 0% 90%;
-  --muted: 0 0% 96%;
-  --muted-foreground: 0 0% 45%;
-  --muted-border: 0 0% 90%;
-  --accent: 43 50% 96%;
+  --secondary: 40 8% 85%;
+  --secondary-foreground: 0 0% 12%;
+  --secondary-border: 40 8% 78%;
+  --muted: 40 8% 85%;
+  --muted-foreground: 0 0% 38%;
+  --muted-border: 40 8% 80%;
+  --accent: 43 40% 86%;
   --accent-foreground: 43 90% 52%;
-  --accent-border: 43 50% 90%;
+  --accent-border: 43 35% 78%;
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 98%;
   --destructive-border: 0 72% 40%;
-  --border: 0 0% 90%;
-  --input: 0 0% 95%;
+  --border: 40 8% 78%;
+  --input: 40 8% 86%;
   --ring: 43 90% 52%;
-  --sidebar: 0 0% 98%;
-  --sidebar-foreground: 0 0% 9%;
-  --sidebar-border: 0 0% 90%;
+  --sidebar: 40 8% 91%;
+  --sidebar-foreground: 0 0% 12%;
+  --sidebar-border: 40 8% 80%;
   --sidebar-primary: 43 90% 52%;
   --sidebar-primary-foreground: 0 0% 5%;
   --sidebar-primary-border: #f3b41640;
-  --sidebar-accent: 43 40% 96%;
+  --sidebar-accent: 43 35% 86%;
   --sidebar-accent-foreground: 43 90% 52%;
-  --sidebar-accent-border: 43 40% 90%;
+  --sidebar-accent-border: 43 35% 78%;
   --sidebar-ring: 43 90% 52%;
-  --button-outline: #e5e5e5;
-  --badge-outline: rgba(0, 0, 0, 0.15);
+  --button-outline: #c9c6c0;
+  --badge-outline: rgba(0, 0, 0, 0.2);
 }
 
 @keyframes wedflowGlowPulse {
@@ -179,7 +179,7 @@ html.light {
 }
 
 html.light ::-webkit-scrollbar-track {
-  background: rgb(245, 245, 245);
+  background: rgb(228, 226, 222);
 }
 
 ::-webkit-scrollbar-thumb {
@@ -189,7 +189,7 @@ html.light ::-webkit-scrollbar-track {
 }
 
 html.light ::-webkit-scrollbar-thumb {
-  border: 2px solid rgb(245, 245, 245);
+  border: 2px solid rgb(228, 226, 222);
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -201,7 +201,7 @@ html.light ::-webkit-scrollbar-thumb {
 }
 
 html.light ::-webkit-scrollbar-corner {
-  background: rgb(245, 245, 245);
+  background: rgb(228, 226, 222);
 }
 
 /* Firefox */
@@ -211,7 +211,12 @@ html {
 }
 
 html.light {
-  scrollbar-color: rgb(52, 50, 47) rgb(245, 245, 245);
+  scrollbar-color: rgb(52, 50, 47) rgb(228, 226, 222);
+}
+
+html.light .user-name,
+html.light .color-white {
+  color: hsl(var(--foreground)) !important;
 }
 
 /* ===========================

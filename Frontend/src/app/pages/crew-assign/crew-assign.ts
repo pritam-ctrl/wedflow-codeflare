@@ -504,6 +504,70 @@ export class CrewAssign implements OnInit {
       return [];
     }
   }
+  // ---------- Right panel (redesign) ----------
+stageFilter: 'all' | 'pending' | 'filled' = 'all';
+
+setStageFilter(filter: 'all' | 'pending' | 'filled'): void {
+  this.stageFilter = filter;
+}
+
+get visibleStages(): EventStage[] {
+  const booking = this.selectedBooking;
+  if (!booking) return [];
+  if (this.stageFilter === 'pending') {
+    return booking.stages.filter((s) => this.stagePendingCount(s) > 0);
+  }
+  if (this.stageFilter === 'filled') {
+    return booking.stages.filter((s) => this.isStageFilled(s));
+  }
+  return booking.stages;
+}
+
+stagePendingCount(stage: EventStage): number {
+  return stage.roles.reduce((t, r) => t + Math.max(0, r.required - r.assigned.length), 0);
+}
+
+isStageFilled(stage: EventStage): boolean {
+  return stage.roles.length > 0 && this.stagePendingCount(stage) === 0;
+}
+
+pendingStageCount(b: BookingQueueItem): number {
+  return b.stages.filter((s) => this.stagePendingCount(s) > 0).length;
+}
+
+filledStageCount(b: BookingQueueItem): number {
+  return b.stages.filter((s) => this.isStageFilled(s)).length;
+}
+
+overdueStageCount(b: BookingQueueItem): number {
+  return b.stages.filter((s) => s.overdue).length;
+}
+
+bookingSlots(b: BookingQueueItem): { required: number; assigned: number } {
+  let required = 0;
+  let assigned = 0;
+  b.stages.forEach((s) =>
+    s.roles.forEach((r) => {
+      required += r.required;
+      assigned += Math.min(r.assigned.length, r.required);
+    }),
+  );
+  return { required, assigned };
+}
+
+slotSegments(b: BookingQueueItem): boolean[] {
+  const { required, assigned } = this.bookingSlots(b);
+  return Array.from({ length: required }, (_, i) => i < assigned);
+}
+
+roleDots(role: RoleAssignment): boolean[] {
+  const total = Math.max(role.required, role.assigned.length);
+  return Array.from({ length: total }, (_, i) => i < role.assigned.length);
+}
+
+openSlots(role: RoleAssignment): number[] {
+  return Array.from({ length: Math.max(0, role.required - role.assigned.length) }, (_, i) => i);
+}
 
   get eventTypes(): string[] {
     const allEvents = new Set<string>();
@@ -516,8 +580,9 @@ export class CrewAssign implements OnInit {
   }
 
   selectBooking(id: string): void {
-    this.selectedBookingId = id;
-  }
+  this.selectedBookingId = id;
+  this.stageFilter = 'all';
+}
 
   overallProgressPercent(booking: BookingQueueItem): number {
     const total = booking.stages.reduce(

@@ -487,8 +487,7 @@
   }
   &.color-white,
   &.color-default {
-    color: rgb(239, 237, 231);
-  }
+color: hsl(var(--foreground));  }
 }
 
 .trend-indicator {

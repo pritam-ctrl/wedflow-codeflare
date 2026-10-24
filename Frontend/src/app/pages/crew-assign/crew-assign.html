@@ -288,16 +288,16 @@
             </div>
 
             <div class="staff-status">
-              <span class="status-indicator" 
-                    [class.status--available]="staff.isAvailable && (!memberToReassign || (staff.staff_name || staff.name) !== memberToReassign.name)"
-                    [class.status--current]="memberToReassign && (staff.staff_name || staff.name) === memberToReassign.name"
-                    [class.status--unavailable]="!staff.isAvailable">
-                {{ memberToReassign && (staff.staff_name || staff.name) === memberToReassign.name ? 'Currently Assigned' : (staff.isAvailable ? 'Available' : 'Already Booked') }}
-              </span>
-              <div class="conflict-info" *ngIf="!staff.isAvailable">
-                <span *ngIf="staff.existingAssignments > 0">{{ staff.existingAssignments }} assignment(s) on this date</span>
-              </div>
-            </div>
+  <span class="staff-badge"
+        [class.staff-badge--available]="staff.isAvailable && (!memberToReassign || (staff.staff_name || staff.name) !== memberToReassign.name)"
+        [class.staff-badge--current]="memberToReassign && (staff.staff_name || staff.name) === memberToReassign.name"
+        [class.staff-badge--unavailable]="!staff.isAvailable">
+    {{ memberToReassign && (staff.staff_name || staff.name) === memberToReassign.name ? 'Currently Assigned' : (staff.isAvailable ? 'Available' : 'Already Booked') }}
+  </span>
+  <div class="conflict-info" *ngIf="!staff.isAvailable">
+    <span *ngIf="staff.existingAssignments > 0">{{ staff.existingAssignments }} assignment(s) on this date</span>
+  </div>
+</div>
 
             <div class="staff-action">
               <button class="assign-btn" [disabled]="!staff.isAvailable">
