@@ -294,7 +294,8 @@
       </select>
     </div>
 
-    <div class="calendar-columns">
+        <div class="calendar-columns">
+      <!-- LEFT: Calendar + Filtered Events -->
       <div class="calendar-days-col">
         <div class="weekday-row">
           <div *ngFor="let day of weekDays">{{ day }}</div>
@@ -320,31 +321,29 @@
           </div>
         </div>
 
-        <div class="side-panel">
-          <div class="side-panel-head">
+        <!-- Filtered Events Section (ekhon calendar-er niche) -->
+        <div class="filtered-events-section">
+          <div class="filtered-head">
             <div>
-              <div class="side-panel-date">{{ selectedDate() | date: 'dd-MM-yyyy' }}</div>
-              <div class="side-panel-count">{{ selectedDateEvents().length }} booking{{ selectedDateEvents().length !==
-                1
-                ? 's' : '' }}</div>
+              <div class="filtered-title">Filtered Events In {{ monthLabel() }} {{ yearLabel() }}</div>
+              <div class="filtered-subtitle">{{ allMonthEvents().length }} booking(s) match current filters</div>
             </div>
-            <a routerLink="/crew-assignments">
-              <button class="btn-outline btn-xs" type="button">Crew Board</button>
-            </a>
           </div>
-          <div class="side-panel-body">
-            <div class="empty-dashed" *ngIf="selectedDateEvents().length === 0">No events on this date.</div>
 
-            <a [routerLink]="'/bookings/' + event.id" class="booking-card-link"
-              *ngFor="let event of selectedDateEvents()">
-              <div class="booking-card" *ngFor="let event of selectedDateEvents()" [class.needs-crew]="event.needsCrew">
-                <div class="booking-avatar">{{ event.name.charAt(0) }}</div>
+          <div class="filtered-empty" *ngIf="allMonthEvents().length === 0">
+            No events match the selected filters for this month.
+          </div>
 
-                <div class="booking-info">
-                  <div class="booking-name">{{ event.name }}</div>
-                  <div class="booking-meta">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <div class="filtered-grid" *ngIf="allMonthEvents().length > 0">
+            <div class="filtered-card" *ngFor="let event of allMonthEvents()">
+              <div class="filtered-card-inner">
+                <div class="filtered-card-info">
+                  <div class="filtered-name">{{ event.name }}</div>
+                  <div class="filtered-package">{{ event.packageName || 'Standard Package' }}</div>
+                  <div class="filtered-meta" *ngIf="event.location">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                      class="location-icon">
                       <path
                         d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0">
                       </path>
@@ -352,19 +351,9 @@
                     </svg>
                     <span>{{ event.location }}</span>
                   </div>
-                  <div class="booking-meta">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <rect x="3" y="8" width="18" height="4" rx="1"></rect>
-                      <path d="M12 8v13"></path>
-                      <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"></path>
-                      <path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"></path>
-                    </svg>
-                    <span>{{ event.packageName }}</span>
-                  </div>
                 </div>
 
-                <div class="booking-card-actions">
+                <div class="filtered-card-actions">
                   <span class="status-pill danger" *ngIf="event.needsCrew">Needs Crew</span>
                   <span class="status-pill success" *ngIf="!event.needsCrew">Crew Assigned</span>
                   <a *ngIf="!event.needsCrew" [routerLink]="'/bookings/' + event.id">
@@ -372,36 +361,35 @@
                   </a>
                 </div>
               </div>
-            </a>
+            </div>
           </div>
         </div>
       </div>
 
-
-
-      <!-- Filtered Events Section -->
-      <div class="filtered-events-section">
-        <div class="filtered-head">
+      <!-- RIGHT: Selected date events (side panel) -->
+      <div class="side-panel">
+        <div class="side-panel-head">
           <div>
-            <div class="filtered-title">Filtered Events In {{ monthLabel() }} {{ yearLabel() }}</div>
-            <div class="filtered-subtitle">{{ allMonthEvents().length }} booking(s) match current filters</div>
+            <div class="side-panel-date">{{ selectedDate() | date: 'dd-MM-yyyy' }}</div>
+            <div class="side-panel-count">{{ selectedDateEvents().length }} booking{{ selectedDateEvents().length !== 1 ? 's' : '' }}</div>
           </div>
+          <a routerLink="/crew-assignments">
+            <button class="btn-outline btn-xs" type="button">Crew Board</button>
+          </a>
         </div>
+        <div class="side-panel-body">
+          <div class="empty-dashed" *ngIf="selectedDateEvents().length === 0">No events on this date.</div>
 
-        <div class="filtered-empty" *ngIf="allMonthEvents().length === 0">
-          No events match the selected filters for this month.
-        </div>
+          <a [routerLink]="'/bookings/' + event.id" class="booking-card-link"
+            *ngFor="let event of selectedDateEvents()">
+            <div class="booking-card" [class.needs-crew]="event.needsCrew">
+              <div class="booking-avatar">{{ event.name.charAt(0) }}</div>
 
-        <div class="filtered-grid" *ngIf="allMonthEvents().length > 0">
-          <div class="filtered-card" *ngFor="let event of allMonthEvents()">
-            <div class="filtered-card-inner">
-              <div class="filtered-card-info">
-                <div class="filtered-name">{{ event.name }}</div>
-                <div class="filtered-package">{{ event.packageName || 'Standard Package' }}</div>
-                <div class="filtered-meta" *ngIf="event.location">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    class="location-icon">
+              <div class="booking-info">
+                <div class="booking-name">{{ event.name }}</div>
+                <div class="booking-meta">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path
                       d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0">
                     </path>
@@ -409,9 +397,19 @@
                   </svg>
                   <span>{{ event.location }}</span>
                 </div>
+                <div class="booking-meta">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="8" width="18" height="4" rx="1"></rect>
+                    <path d="M12 8v13"></path>
+                    <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"></path>
+                    <path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"></path>
+                  </svg>
+                  <span>{{ event.packageName }}</span>
+                </div>
               </div>
 
-              <div class="filtered-card-actions">
+              <div class="booking-card-actions">
                 <span class="status-pill danger" *ngIf="event.needsCrew">Needs Crew</span>
                 <span class="status-pill success" *ngIf="!event.needsCrew">Crew Assigned</span>
                 <a *ngIf="!event.needsCrew" [routerLink]="'/bookings/' + event.id">
@@ -419,10 +417,9 @@
                 </a>
               </div>
             </div>
-          </div>
+          </a>
         </div>
       </div>
-
     </div>
     <!-- card-block EKHANE close — Calendar + Filtered Events dutai er bhitore chilo -->
 
