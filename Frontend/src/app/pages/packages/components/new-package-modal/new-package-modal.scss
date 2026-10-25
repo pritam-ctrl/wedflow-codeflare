@@ -1,12 +1,14 @@
-// ---------- theme tokens ----------
+// ---------- theme tokens (global theme variable থেকে আসে) ----------
 :host {
-  --bg: #0b0b0d;
-  --border-color: rgba(255, 255, 255, 0.1);
-  --text-main: #f5f5f5;
-  --text-muted: #9a9a9a;
-  --primary: #d9a441;
-  --primary-foreground: #0b0b0d;
-  --destructive: #e05c5c;
+  --bg: hsl(var(--card));
+  --field-bg: hsl(var(--background));
+  --border-color: hsl(var(--border));
+  --text-main: hsl(var(--foreground));
+  --text-muted: hsl(var(--muted-foreground));
+  --soft-bg: hsl(var(--muted) / 0.45);
+  --brand: hsl(var(--primary));
+  --brand-foreground: hsl(var(--primary-foreground));
+  --destructive-color: hsl(var(--destructive));
 
   display: contents;
   font-family:
@@ -39,7 +41,6 @@
   clip: rect(0 0 0 0);
 }
 
-// ---------- overlay + dialog ----------
 // ---------- overlay + dialog ----------
 @keyframes overlay-fade-in {
   from {
@@ -129,6 +130,7 @@
   font-size: 1.125rem;
   font-weight: 600;
   margin: 0;
+  color: var(--text-main);
 }
 
 .modal-close-btn {
@@ -137,6 +139,7 @@
   justify-content: center;
   width: 28px;
   height: 28px;
+  min-height: 0;
   border: none;
   background: transparent;
   color: var(--text-muted);
@@ -145,7 +148,7 @@
 
   &:hover {
     color: var(--text-main);
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--soft-bg);
   }
 }
 
@@ -179,6 +182,7 @@
 .form-label {
   font-size: 0.875rem;
   font-weight: 500;
+  color: var(--text-main);
 }
 
 .form-hint {
@@ -190,7 +194,7 @@
 .form-input,
 .form-textarea {
   width: 100%;
-  background: transparent;
+  background: var(--field-bg);
   border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 0.875rem;
@@ -203,18 +207,24 @@
     color: var(--text-muted);
   }
   &:focus {
-    border-color: var(--primary);
+    border-color: var(--brand);
   }
+}
+
+// dropdown-er option gulo jeno theme-er rong e ashe
+select option {
+  background: var(--bg);
+  color: var(--text-main);
 }
 
 .form-input {
   height: 2.25rem;
-  padding: 0.25rem 0.75rem; // py-1 px-3 — original input spec
+  padding: 0.25rem 0.75rem;
 }
 
 .form-textarea {
   min-height: 60px;
-  padding: 0.5rem 0.75rem; // py-2 px-3 — original textarea spec (age eta bhul chilo)
+  padding: 0.5rem 0.75rem;
   resize: vertical;
 }
 
@@ -240,10 +250,11 @@
   gap: 0.5rem;
   font-size: 0.875rem;
   font-weight: 600;
+  color: var(--text-main);
 
   svg {
-    color: var(--primary);
-  } // icon amber
+    color: var(--brand);
+  }
 }
 
 .panel-card {
@@ -265,14 +276,15 @@
 .panel-card__title {
   font-size: 0.875rem;
   font-weight: 500;
+  color: var(--text-main);
 }
 
 // ---------- crew requirements ----------
 .crew-day-card {
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.03); // pure black na, ektু lighter shade
-  overflow: hidden; // child-er padding jeno card-er border chhariye na jay
+  background: var(--soft-bg);
+  overflow: hidden;
   margin-bottom: 0.75rem;
 }
 
@@ -280,7 +292,7 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.6rem 0.75rem; // age beshi chilo, kombe dilam
+  padding: 0.6rem 0.75rem;
   border-bottom: 1px solid var(--border-color);
 
   .form-input {
@@ -295,25 +307,25 @@
   gap: 0.35rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--text-muted); // "Day 1" text — pure white na, soft/muted tone
+  color: var(--text-muted);
   flex-shrink: 0;
   white-space: nowrap;
 
   svg {
-    color: var(--primary);
-  } // calendar icon amber
+    color: var(--brand);
+  }
 }
 
 .role-empty-text {
-  padding: 0.4rem 0.75rem; // px-3 py-2
-  font-size: 0.75rem; // text-xs
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
-  background-color: rgba(0, 0, 0, 0.8);
+  background-color: transparent;
   margin: 0;
 }
 
 .role-empty-highlight {
-  color: var(--primary) !important;
+  color: var(--brand) !important;
   font-weight: 500;
 }
 
@@ -322,15 +334,17 @@
   align-items: center;
   gap: 0.75rem;
 }
+
 .link-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  flex-shrink: 0; // squeeze hote dibe na
-  white-space: nowrap; // "+ Role" ekline-e thakবে, dui line hবে na
+  flex-shrink: 0;
+  white-space: nowrap;
+  min-height: 0;
   border: none;
   background: none;
-  color: var(--primary);
+  color: var(--brand);
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
@@ -351,9 +365,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-height: 0;
   border: none;
   background: transparent;
-  color: var(--destructive);
+  color: var(--destructive-color);
   cursor: pointer;
   padding: 0.25rem;
   flex-shrink: 0;
@@ -381,7 +396,7 @@
   min-height: 2rem;
 
   &:hover {
-    border-color: var(--primary);
+    border-color: var(--brand);
   }
 }
 
@@ -401,7 +416,7 @@
 .payment-section-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;   // duটা group duই প্রান্তে
+  justify-content: space-between;
   gap: 0.75rem;
   flex-wrap: nowrap;
 }
@@ -409,44 +424,46 @@
 .payment-section-left {
   display: flex;
   align-items: center;
-  gap: 0.5rem;    // gap-2
+  gap: 0.5rem;
 }
 
 .payment-section-right {
   display: flex;
   align-items: center;
-  gap: 0.75rem;   // gap-3
+  gap: 0.75rem;
 }
 
 .schedule-mode-select {
-  height: 2rem;          // h-8
-  width: 9rem;            // w-36 — original-e full-width na, fixed width
-  font-size: 0.75rem;     // text-xs
+  height: 2rem;
+  width: 9rem;
+  font-size: 0.75rem;
   padding: 0 0.75rem;
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  background: transparent;
+  background: var(--field-bg);
   color: var(--text-main);
   outline: none;
 
-  &:focus { border-color: var(--primary); }
+  &:focus {
+    border-color: var(--brand);
+  }
 }
 
 .allocated-badge {
   display: inline-flex;
   align-items: center;
   border-radius: 9999px;
-  border: 1px solid rgba(224, 92, 92, 0.25);   // age border-i chilo na
-  padding: 0.25rem 0.65rem;                      // px-2.5 py-1
+  border: 1px solid rgba(224, 92, 92, 0.25);
+  padding: 0.25rem 0.65rem;
   font-size: 0.75rem;
-  font-weight: 600;                               // font-semibold, age medium chilo
+  font-weight: 600;
   background: rgba(224, 92, 92, 0.1);
   color: #e0736f;
 
   &--ok {
-    border-color: rgba(16, 185, 129, 0.25);   // emerald-500/25
-    background: rgba(16, 185, 129, 0.1);       // emerald-500/10
-    color: #10b981;                             // emerald-500
+    border-color: rgba(16, 185, 129, 0.25);
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
   }
 }
 
@@ -471,7 +488,7 @@
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--text-muted);
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--soft-bg);
   }
 }
 
@@ -484,7 +501,7 @@
   min-height: 3.5rem;
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--soft-bg);
   padding: 0.75rem 1rem;
 }
 
@@ -497,6 +514,7 @@
 .availability-label {
   font-size: 0.875rem;
   font-weight: 600;
+  color: var(--text-main);
 }
 
 .switch-wrapper {
@@ -509,21 +527,22 @@
 .switch-status-text {
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--primary);
+  color: var(--brand);
 }
 
 .switch-toggle {
   position: relative;
   width: 36px;
   height: 20px;
+  min-height: 0;
   border-radius: 9999px;
   border: none;
-  background: #3a3a3a;
+  background: hsl(var(--muted-foreground) / 0.5);
   cursor: pointer;
   transition: background 0.15s ease;
 
   &--on {
-    background: var(--primary);
+    background: var(--brand);
   }
 }
 
@@ -534,7 +553,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--text-main);
+  background: #ffffff;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
   transform: translateX(0);
   transition: transform 0.15s ease;
@@ -571,13 +590,13 @@
 }
 
 .btn-primary {
-  border: 1px solid var(--primary);
+  border: 1px solid var(--brand);
   border-radius: 6px;
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
   font-weight: 600;
-  background: var(--primary);
-  color: var(--primary-foreground);
+  background: var(--brand);
+  color: var(--brand-foreground);
   cursor: pointer;
 
   &:hover {
@@ -619,7 +638,6 @@
     margin-left: auto;
   }
 
-  // ekhane .editor-row add kora holo, .role-row-er pashe
   .role-row,
   .editor-row {
     flex-wrap: wrap;
@@ -632,7 +650,6 @@
       flex-basis: calc(50% - 0.375rem);
     }
   }
-  
 
   .payment-table {
     overflow-x: auto;
@@ -654,12 +671,12 @@
   }
 
   .editor-row {
-  flex-wrap: wrap;
-  row-gap: 0.5rem;
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
 
-  .form-input,
-  .form-input--sm {
-    flex-basis: 100%;   // qty ar days duটাই full width, pashapashi na
+    .form-input,
+    .form-input--sm {
+      flex-basis: 100%;
+    }
   }
-}
 }

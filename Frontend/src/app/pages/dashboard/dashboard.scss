@@ -851,7 +851,7 @@ color: hsl(var(--foreground));  }
   border-radius: 0.25rem;
   padding: 0.15rem 0.35rem;
   font-size: 10px;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
@@ -860,13 +860,22 @@ color: hsl(var(--foreground));  }
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   cursor: grab;
-user-select: none;
+  user-select: none;
   transition: all 0.2s ease;
 
+  // Dark mode রঙ (আগের মতোই)
+  &--needs-crew {
+    background: rgba(98, 24, 24, 0.35);
+  }
+
+  &--assigned {
+    background: rgba(31, 71, 31, 0.35);
+  }
+
   &:hover {
-    background: rgba(243, 180, 22, 0.3);
     transform: scale(1.02);
-    border-color: rgba(243, 180, 22, 0.4);
+    filter: brightness(1.2);
+    border-color: rgba(243, 180, 22, 0.5);
   }
 }
 
@@ -1483,5 +1492,74 @@ user-select: none;
     height: 0.75rem;
     width: 45%;
     margin-top: 0.25rem;
+  }
+}
+
+// ---------- Light mode fixes ----------
+:host-context(html.light) {
+  // "Needs Crew" / "Crew Assigned" pill
+  .status-pill {
+    &.danger {
+      background: rgba(220, 38, 38, 0.12);
+      color: #b91c1c;
+      border: 1px solid rgba(220, 38, 38, 0.4);
+    }
+
+    &.success {
+      background: rgba(22, 163, 74, 0.12);
+      color: #15803d;
+      border: 1px solid rgba(22, 163, 74, 0.4);
+    }
+  }
+
+  // গাঢ় সোনালী লেখা (ক্রিম জমিনে পড়ার জন্য)
+  .filtered-package,
+  .event-count-badge,
+  .page-title {
+    color: #8a6508;
+  }
+
+  .booking-meta svg,
+  .quick-action-chip svg,
+  .sparkle-icon {
+    color: #8a6508;
+  }
+
+  // calendar-এর event ব্যাজ (light mode)
+  .event-name-badge {
+    color: #1a1a1a;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+
+    &--needs-crew {
+      background: rgba(239, 68, 68, 0.18);
+      border-color: rgba(220, 38, 38, 0.55);
+      color: #7f1d1d;
+    }
+
+    &--assigned {
+      background: rgba(34, 197, 94, 0.2);
+      border-color: rgba(22, 163, 74, 0.55);
+      color: #14532d;
+    }
+
+    &:hover {
+      filter: brightness(0.95);
+      border-color: rgba(138, 101, 8, 0.7);
+    }
+  }
+
+    // আজকের তারিখের সংখ্যা
+  .day-cell.is-today .day-number {
+    color: #8a6508;
+  }
+
+    // Stat card-এর সংখ্যা
+  .stat-value {
+    &.color-gold {
+      color: #8a6508;
+    }
+    &.color-red {
+      color: #dc2626;
+    }
   }
 }

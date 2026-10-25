@@ -236,3 +236,47 @@
   margin-top: 0.125rem;
   background: rgb(245, 196, 71);
 }
+
+// ---------- Light mode fixes ----------
+:host-context(html.light) {
+  .mobile-menu-btn {
+    background: hsl(var(--secondary));
+    color: hsl(var(--foreground));
+    border: 1px solid hsl(var(--border));
+  }
+
+  .mobile-brand-name {
+    color: #8a6508;
+  }
+
+  .mobile-avatar {
+    background: rgba(243, 180, 22, 0.25);
+    color: #7a5a06;
+  }
+
+  .theme-btn {
+    border: 1px solid hsl(var(--border));
+  }
+
+  .mobile-bottom-nav {
+    background: hsl(var(--card));
+    border-top: 1px solid hsl(var(--border));
+    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  .bottom-nav-item {
+    color: hsl(var(--muted-foreground));
+
+    &.active {
+      color: #8a6508;
+
+      .bottom-nav-icon-wrap {
+        background: rgba(243, 180, 22, 0.22);
+      }
+    }
+  }
+
+  .bottom-nav-dot {
+    background: #8a6508;
+  }
+}

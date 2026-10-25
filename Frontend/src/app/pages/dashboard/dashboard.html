@@ -294,7 +294,7 @@
       </select>
     </div>
 
-        <div class="calendar-columns">
+    <div class="calendar-columns">
       <!-- LEFT: Calendar + Filtered Events -->
       <div class="calendar-days-col">
         <div class="weekday-row">
@@ -313,7 +313,8 @@
               <div class="event-count-badge">{{ day.events.length }} event{{ day.events.length > 1 ? 's' : '' }}</div>
               <div class="event-name-list">
                 <div class="event-name-badge" *ngFor="let ev of day.events; trackBy: trackEvent" cdkDrag
-                  [cdkDragData]="ev" [style.background]="ev.colorBg">
+                  [cdkDragData]="ev" [class.event-name-badge--needs-crew]="ev.needsCrew"
+                  [class.event-name-badge--assigned]="!ev.needsCrew">
                   {{ ev.name }}
                 </div>
               </div>
@@ -371,7 +372,8 @@
         <div class="side-panel-head">
           <div>
             <div class="side-panel-date">{{ selectedDate() | date: 'dd-MM-yyyy' }}</div>
-            <div class="side-panel-count">{{ selectedDateEvents().length }} booking{{ selectedDateEvents().length !== 1 ? 's' : '' }}</div>
+            <div class="side-panel-count">{{ selectedDateEvents().length }} booking{{ selectedDateEvents().length !== 1
+              ? 's' : '' }}</div>
           </div>
           <a routerLink="/crew-assignments">
             <button class="btn-outline btn-xs" type="button">Crew Board</button>

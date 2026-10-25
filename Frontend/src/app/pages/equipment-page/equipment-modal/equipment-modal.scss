@@ -3,7 +3,22 @@
   --brand-fg: hsl(var(--primary-foreground));
   --muted-fg: hsl(var(--muted-foreground));
   --fg: hsl(var(--foreground));
-  --destructive: hsl(var(--destructive));
+  --danger: hsl(var(--destructive));
+
+  --surface: hsl(var(--card));
+  --field-bg: hsl(var(--input));
+  --border-c: hsl(var(--border));
+  --field-border: hsl(var(--secondary-border));
+
+  // সোনালী লেখার রঙ (dark mode এ উজ্জ্বল, light mode এ গাঢ়)
+  --title-color: rgb(245, 196, 71);
+  --accent-text: hsl(var(--accent-foreground));
+}
+
+// Light mode এ সোনালী লেখা গাঢ় করা, যাতে ক্রিম জমিনে পড়া যায়
+:host-context(html.light) {
+  --title-color: #8a6508;
+  --accent-text: #7a5a06;
 }
 
 // bg-black/80
@@ -26,8 +41,9 @@
   display: grid;
   gap: 16px;
   border-radius: 8px;
-  border: 1px solid rgb(36, 36, 36);
-  background: rgb(15, 15, 15);
+  border: 1px solid var(--border-c);
+  background: var(--surface);
+  color: var(--fg);
   padding: 24px;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.5);
 
@@ -50,7 +66,7 @@
   font-weight: 600;
   line-height: 1;
   letter-spacing: -0.01em;
-  color: rgb(245, 196, 71);
+  color: var(--title-color);
   margin: 0;
 }
 
@@ -83,8 +99,8 @@
   box-sizing: border-box;
   height: 36px;
   border-radius: 6px;
-  border: 1px solid rgb(46, 46, 46);
-  background: rgb(23, 23, 23);
+  border: 1px solid var(--field-border);
+  background: var(--field-bg);
   padding: 4px 12px;
   font-size: 14px;
   color: var(--fg);
@@ -100,13 +116,13 @@
   }
 
   &--error {
-    border-color: var(--destructive);
+    border-color: var(--danger);
   }
 }
 
 .field-error {
   font-size: 12px;
-  color: var(--destructive);
+  color: var(--danger);
 }
 
 .select-wrap {
@@ -117,14 +133,15 @@
 .select-trigger {
   display: flex;
   height: 36px;
+  min-height: 36px;
   width: 100%;
   box-sizing: border-box;
   align-items: center;
   justify-content: space-between;
   white-space: nowrap;
   border-radius: 6px;
-  border: 1px solid rgb(46, 46, 46);
-  background: rgb(23, 23, 23);
+  border: 1px solid var(--field-border);
+  background: var(--field-bg);
   padding: 8px 12px;
   font-size: 14px;
   color: var(--fg);
@@ -158,8 +175,8 @@
   margin: 0;
   padding: 4px;
   border-radius: 8px;
-  border: 1px solid rgb(46, 46, 46);
-  background: rgb(15, 15, 15);
+  border: 1px solid var(--field-border);
+  background: var(--surface);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
 }
 
@@ -179,12 +196,12 @@
 
   &--selected {
     background: hsl(var(--accent));
-    color: hsl(var(--accent-foreground));
+    color: var(--accent-text);
   }
 
   &:hover {
     background: hsl(var(--accent));
-    color: hsl(var(--accent-foreground));
+    color: var(--accent-text);
   }
 }
 
@@ -197,7 +214,7 @@
   height: 16px;
   width: 16px;
   flex-shrink: 0;
-  color: hsl(var(--accent-foreground));
+  color: var(--accent-text);
 }
 
 // flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2
@@ -233,6 +250,7 @@
 
     &:hover {
       background: hsl(var(--muted));
+      color: var(--fg);
     }
   }
 
@@ -243,6 +261,7 @@
 
     &:hover {
       filter: brightness(1.05);
+      color: black;
     }
   }
 }
@@ -255,6 +274,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-height: 0;
   border: none;
   background: transparent;
   color: var(--muted-fg);
@@ -269,6 +289,7 @@
 
   &:hover {
     opacity: 1;
+    color: var(--fg);
   }
 }
 
