@@ -31,7 +31,114 @@ export class Storage implements OnInit {
     return Math.max(pct, 0.05); // floor so a sliver is always visible
   });
 
+  // ==== Cloudflare R2 tiering + estimated cost ====
+  private static readonly GB = 1024 * 1024 * 1024;
+  // Published R2 pricing (USD per GB / month)
+  private static readonly STANDARD_RATE = 0.015;
+  private static readonly INFREQUENT_RATE = 0.01;
+
+  private bytesInTier(tier: 'STANDARD' | 'INFREQUENT_ACCESS'): number {
+    return this.files().reduce((sum, f) => {
+      const fileTier = f.storageClass === 'INFREQUENT_ACCESS' ? 'INFREQUENT_ACCESS' : 'STANDARD';
+      return fileTier === tier ? sum + (f.sizeBytes || 0) : sum;
+    }, 0);
+  }
+
+  standardBytes = computed(() => this.bytesInTier('STANDARD'));
+  infrequentAccessBytes = computed(() => this.bytesInTier('INFREQUENT_ACCESS'));
+
+  estimatedCost = computed(() => {
+    const standardGB = this.standardBytes() / Storage.GB;
+    const infrequentGB = this.infrequentAccessBytes() / Storage.GB;
+    return standardGB * Storage.STANDARD_RATE + infrequentGB * Storage.INFREQUENT_RATE;
+  });
+
+  allStandardCost = computed(() => {
+    const allGB = (this.standardBytes() + this.infrequentAccessBytes()) / Storage.GB;
+    return allGB * Storage.STANDARD_RATE;
+  });
+
+  savings = computed(() => Math.max(this.allStandardCost() - this.estimatedCost(), 0));
+
+  fmt(bytes: number): string {
+    return this.storageService.formatFileSize(bytes);
+  }
+
   archiveEligibleDays = signal(30);
+
+  // ==== file class (client gallery vs internal archive) ====
+  fileClassOptions: { value: 'client-gallery' | 'internal-archive'; label: string }[] = [
+    { value: 'client-gallery', label: 'Client Gallery' },
+    { value: 'internal-archive', label: 'Internal Archive' },
+  ];
+  selectedFileClass = signal<'client-gallery' | 'internal-archive'>('client-gallery');
+  isFileClassMenuOpen = signal(false);
+
+  get fileClassLabel(): string {
+    return this.fileClassOptions.find((o) => o.value === this.selectedFileClass())?.label ?? 'Client Gallery';
+  }
+
+  // ==== upgrade / top-up modal ====
+  isUpgradeModalOpen = signal(false);
+  activeUpgradeTab = signal<'topup' | 'upgrade'>('topup');
+  selectedTopupGB = signal(100);
+  selectedPlanTier = signal('Professional');
+  paymentReference = signal('');
+  isSubmittingUpgrade = signal(false);
+
+  topupOptions: { gb: number; label: string }[] = [
+    { gb: 100, label: '100 GB top-up' },
+    { gb: 250, label: '250 GB top-up' },
+    { gb: 500, label: '500 GB top-up' },
+    { gb: 1000, label: '1 TB top-up' },
+  ];
+
+  planOptions: { name: string; label: string }[] = [
+    { name: 'Starter', label: 'Starter' },
+    { name: 'Professional', label: 'Professional' },
+    { name: 'Enterprise', label: 'Enterprise' },
+  ];
+
+  openUpgradeModal() {
+    this.isUpgradeModalOpen.set(true);
+  }
+
+  closeUpgradeModal() {
+    this.isUpgradeModalOpen.set(false);
+  }
+
+  submitUpgradeRequest() {
+    const requestType = this.activeUpgradeTab() === 'topup' ? 'topup_block' : 'plan_upgrade';
+    const reference = this.paymentReference().trim();
+
+    if (!reference) {
+      alert('Please enter the payment transaction reference / UTR.');
+      return;
+    }
+
+    this.isSubmittingUpgrade.set(true);
+    this.storageService
+      .submitUpgradeRequest({
+        requestType,
+        planName: requestType === 'plan_upgrade' ? this.selectedPlanTier() : undefined,
+        additionalGB: requestType === 'topup_block' ? this.selectedTopupGB() : 0,
+        paymentReference: reference,
+      })
+      .subscribe({
+        next: (response) => {
+          console.log('Upgrade request submitted:', response);
+          alert('Upgrade request submitted. Our team will confirm shortly.');
+          this.isSubmittingUpgrade.set(false);
+          this.paymentReference.set('');
+          this.closeUpgradeModal();
+        },
+        error: (error) => {
+          console.error('Error submitting upgrade request:', error);
+          alert('Failed to submit upgrade request. Please try again.');
+          this.isSubmittingUpgrade.set(false);
+        },
+      });
+  }
 
   // ==== upload form ====
   bookingOptions = signal<BookingOption[]>([]);
@@ -117,35 +224,43 @@ categoryOptions: FileTypeOption[] = [
     this.isRawTypeMenuOpen.set(false);
     this.isMediaTypeMenuOpen.set(false);
     this.isCategoryMenuOpen.set(false);
+    this.isFileClassMenuOpen.set(false);
   }
 
   // ==== dropdown toggles ====
   toggleBookingMenu() {
-    this.isBookingMenuOpen.set(!this.isBookingMenuOpen());
-    this.isRawTypeMenuOpen.set(false);
-    this.isMediaTypeMenuOpen.set(false);
-    this.isCategoryMenuOpen.set(false);
+    const open = !this.isBookingMenuOpen();
+    this.closeAllMenus();
+    this.isBookingMenuOpen.set(open);
   }
 
   toggleRawTypeMenu() {
-    this.isRawTypeMenuOpen.set(!this.isRawTypeMenuOpen());
-    this.isBookingMenuOpen.set(false);
-    this.isMediaTypeMenuOpen.set(false);
-    this.isCategoryMenuOpen.set(false);
+    const open = !this.isRawTypeMenuOpen();
+    this.closeAllMenus();
+    this.isRawTypeMenuOpen.set(open);
   }
 
   toggleMediaTypeMenu() {
-    this.isMediaTypeMenuOpen.set(!this.isMediaTypeMenuOpen());
-    this.isBookingMenuOpen.set(false);
-    this.isRawTypeMenuOpen.set(false);
-    this.isCategoryMenuOpen.set(false);
+    const open = !this.isMediaTypeMenuOpen();
+    this.closeAllMenus();
+    this.isMediaTypeMenuOpen.set(open);
   }
 
   toggleCategoryMenu() {
-    this.isCategoryMenuOpen.set(!this.isCategoryMenuOpen());
-    this.isBookingMenuOpen.set(false);
-    this.isRawTypeMenuOpen.set(false);
-    this.isMediaTypeMenuOpen.set(false);
+    const open = !this.isCategoryMenuOpen();
+    this.closeAllMenus();
+    this.isCategoryMenuOpen.set(open);
+  }
+
+  toggleFileClassMenu() {
+    const open = !this.isFileClassMenuOpen();
+    this.closeAllMenus();
+    this.isFileClassMenuOpen.set(open);
+  }
+
+  selectFileClass(value: 'client-gallery' | 'internal-archive') {
+    this.selectedFileClass.set(value);
+    this.isFileClassMenuOpen.set(false);
   }
 
   selectBooking(id: string) {
@@ -282,6 +397,7 @@ categoryOptions: FileTypeOption[] = [
       bookingId: this.selectedBookingId()!,
       fileName: file.name,
       fileType: this.selectedMediaType(),
+      fileClass: this.selectedFileClass(),
       category: this.selectedRawType(),
       storagePath: `bookings/${this.selectedBookingId()}/${this.selectedRawType()}/${file.name}`,
       fileSize: file.size,
@@ -308,16 +424,14 @@ categoryOptions: FileTypeOption[] = [
   }
 
   onDownload(file: StorageFile) {
-    this.storageService.downloadFile(file.id).subscribe({
-      next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = file.name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
+    this.storageService.requestFileDownload(file.id).subscribe({
+      next: (response) => {
+        if (response.immediate && response.downloadUrl) {
+          window.open(response.downloadUrl, '_blank');
+          return;
+        }
+        alert(response.message || 'This file is being restored from archive. Please try again once it is ready.');
+        this.loadFiles(); // Refresh file list to reflect restore status
       },
       error: (error) => {
         console.error('Error downloading file:', error);
@@ -330,8 +444,8 @@ categoryOptions: FileTypeOption[] = [
     if (confirm(`Restore "${file.name}" from archive?`)) {
       this.storageService.restoreFile(file.id).subscribe({
         next: (response) => {
-          console.log('File restored successfully:', response);
-          alert('File restored successfully!');
+          console.log('File restore requested:', response);
+          alert(response?.message || 'File restore requested. You will be notified when it is ready.');
           this.loadFiles(); // Refresh file list
         },
         error: (error) => {
