@@ -479,28 +479,6 @@ export class Packages implements OnInit {
       ],
       deliverables: ['heheheww'],
     },
-    {
-      id: '10',
-      name: 'DEMO TESTING',
-      status: 'Active',
-      durationDays: 4,
-      price: '₹1,50,000',
-      description: 'Full Coverage',
-      crewPerDay: [
-        { dayLabel: 'Day 1: Wedding', crew: [] },
-        { dayLabel: 'Day 2: Reception', crew: [] },
-        { dayLabel: 'Day 3: Haldi', crew: [] },
-        { dayLabel: 'Day 4: Sangeet', crew: [] },
-      ],
-      paymentSchedule: [
-        { label: 'Advance', percent: 20, timing: 'At Booking' },
-        { label: 'Balance', percent: 20, timing: 'On Event Day' },
-        { label: 'Installment 2', percent: 60, timing: 'On Final Delivery' },
-      ],
-      reminderNote: 'Reminders use Day 1; crew details mail: 3 days before each event day.',
-      editorPlan: [{ role: '1x Photo Editor', task: 'Photo Editing - 7d' }],
-      deliverables: ['Album will be delivered'],
-    },
   ];
 
   // ----- Deliverables: prothom 3 ta dekhabe, baki count-e "+X more..." -----

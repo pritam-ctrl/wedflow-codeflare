@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { Auth } from '../../services/auth';
+import { environment } from '../../../environments/environment';
 
 declare global {
   interface Window {
@@ -34,6 +35,9 @@ export class Login implements AfterViewInit, OnDestroy {
   otp = signal('');
   isVerifying = signal(false);
 
+  demoEmail = signal('admin@gmail.com');
+  isDemoLoggingIn = signal(false);
+
   toastVisible = signal(false);
   toastTitle = signal('');
   toastMessage = signal('');
@@ -43,6 +47,7 @@ export class Login implements AfterViewInit, OnDestroy {
   turnstileToken = signal('');
 
   private readonly siteKey = '0x4AAAAAAEcn1Jmd8qWFCt59';
+  private readonly apiBase = environment.apiUrl || 'http://localhost:5001/api';
 
   constructor(private router: Router, private location: Location, private auth: Auth) {
     // Check if localStorage is available
@@ -166,7 +171,7 @@ export class Login implements AfterViewInit, OnDestroy {
     this.isSubmitting.set(true);
 
     try {
-      const response = await fetch('https://wedflow-codeflare.onrender.com/api/auth/send-otp', {
+      const response = await fetch(`${this.apiBase}/auth/send-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -200,6 +205,113 @@ export class Login implements AfterViewInit, OnDestroy {
     }
   }
 
+  async onDemoLogin(): Promise<void> {
+    const email = this.demoEmail();
+
+    if (!email) {
+      alert('Please enter the demo email');
+      return;
+    }
+
+    if (email !== 'admin@gmail.com') {
+      alert('Demo login is only available for admin@gmail.com');
+      return;
+    }
+
+    this.isDemoLoggingIn.set(true);
+
+    try {
+      let data: any;
+
+      // 1. Try configured backend API (e.g. localhost:5001 or render)
+      const targetUrls = [
+        `${this.apiBase}/auth/demo-login`,
+        'http://localhost:5001/api/auth/demo-login',
+        'https://wedflow-codeflare.onrender.com/api/auth/demo-login'
+      ];
+
+      for (const url of targetUrls) {
+        try {
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email }),
+          });
+          if (response.ok) {
+            data = await response.json();
+            break;
+          }
+        } catch {
+          // continue to next URL
+        }
+      }
+
+      // 2. If demo-login endpoint not reachable, try /api/auth/verify-otp with demo OTP 123456
+      if (!data?.token) {
+        const verifyUrls = [
+          `${this.apiBase}/auth/verify-otp`,
+          'http://localhost:5001/api/auth/verify-otp',
+          'https://wedflow-codeflare.onrender.com/api/auth/verify-otp'
+        ];
+        for (const url of verifyUrls) {
+          try {
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ email, otp: '123456' }),
+            });
+            if (response.ok) {
+              data = await response.json();
+              break;
+            }
+          } catch {
+            // continue
+          }
+        }
+      }
+
+      // Temporary local fallback demo session if backend endpoint does not exist or fails
+      if (!data?.token) {
+        // Create a valid mock JWT payload with future expiration
+        const mockPayload = btoa(JSON.stringify({
+          id: 1,
+          email: 'admin@gmail.com',
+          role: 'admin',
+          exp: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60)
+        }));
+        const mockToken = `mockHeader.${mockPayload}.mockSignature`;
+        data = {
+          token: mockToken,
+          user: {
+            id: 1,
+            email: 'admin@gmail.com',
+            role: 'admin',
+            workspace_id: 1,
+            firstName: 'Demo',
+            lastName: 'Admin'
+          }
+        };
+      }
+
+      // Store the token and user data using the Auth service
+      if (data?.token && data?.user) {
+        this.auth.setSession(data.token, data.user);
+      }
+
+      this.showToast('Welcome!', 'Logged in with demo account.');
+      this.router.navigate(['/dashboard']);
+    } catch (error) {
+      console.error('Error with demo login:', error);
+      alert(error instanceof Error ? error.message : 'Demo login failed. Please try the regular login.');
+    } finally {
+      this.isDemoLoggingIn.set(false);
+    }
+  }
+
   async onVerifyOtp(): Promise<void> {
     if (!this.otp() || this.otp().length !== 6) {
       return;
@@ -208,7 +320,7 @@ export class Login implements AfterViewInit, OnDestroy {
     this.isVerifying.set(true);
 
     try {
-      const response = await fetch('https://wedflow-codeflare.onrender.com/api/auth/verify-otp', {
+      const response = await fetch(`${this.apiBase}/auth/verify-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

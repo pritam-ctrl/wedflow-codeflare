@@ -61,6 +61,34 @@
             <svg *ngIf="isSubmitting()" class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
             {{ isSubmitting() ? 'Sending...' : 'Send OTP' }}
           </button>
+
+          <div class="divider">
+            <span>or</span>
+          </div>
+
+          <div class="demo-section">
+            <div class="demo-label">Demo Login (No OTP Required)</div>
+            <div class="field-group">
+              <label for="demo-email">Demo Email</label>
+              <div class="input-wrap">
+                <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                  fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+                </svg>
+                <input id="demo-email" name="demo-email" type="email" required placeholder="admin@gmail.com" [ngModel]="demoEmail()"
+                  (ngModelChange)="demoEmail.set($event)">
+              </div>
+            </div>
+            <button type="button" class="demo-login-btn" (click)="onDemoLogin()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                <polyline points="10 17 15 12 10 7"></polyline>
+                <line x1="15" y1="12" x2="3" y2="12"></line>
+              </svg>
+              {{ isDemoLoggingIn() ? 'Logging in...' : 'Demo Login' }}
+            </button>
+          </div>
         </form>
 
         <!-- ===== STEP 2: OTP ===== -->

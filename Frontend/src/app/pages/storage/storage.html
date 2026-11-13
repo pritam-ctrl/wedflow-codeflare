@@ -1,13 +1,23 @@
 <main class="storage-page">
     <div class="storage-inner">
 
-        <!-- text-3xl font-bold tracking-tight -->
+        <!-- Header -->
         <div class="storage-header">
-            <h1 class="page-title">Storage</h1>
-            <p class="page-subtitle">Private S3 workspace with automatic Deep Archive retention.</p>
+            <div>
+                <h1 class="page-title">Storage</h1>
+                <p class="page-subtitle">Cloudflare R2 storage with Standard & Infrequent Access intelligent tiering.</p>
+            </div>
+            <a href="http://localhost:3000/admin" target="_blank" class="action-btn primary-action-btn flex items-center gap-2" style="text-decoration: none; padding: 10px 18px; border-radius: 12px; background: #7c3aed; color: #fff; font-weight: 600; font-size: 14px; box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);">
+                <span>📸 Open Photo Delivery Portal</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+            </a>
         </div>
 
-        <!-- grid gap-3 sm:grid-cols-2 lg:grid-cols-4 -->
+        <!-- Stats Grid -->
         <div class="stats-grid">
             <div class="stat-card">
                 <div>
@@ -70,11 +80,19 @@
             </div>
         </div>
 
-        <!-- Storage allocation card -->
+        <!-- Storage allocation card with Top-Up button -->
         <section class="panel-card">
             <div class="panel-header panel-header--row">
-                <div class="panel-title">Storage allocation</div>
-                <span class="allocation-fraction">{{ usedLabel() }} / {{ totalLabel() }}</span>
+                <div>
+                    <div class="panel-title">Storage allocation</div>
+                    <span class="allocation-fraction">{{ usedLabel() }} / {{ totalLabel() }}</span>
+                </div>
+                <button type="button" class="choose-file-btn" style="background: var(--brand); height: 32px; padding: 0 12px; font-size: 13px;" (click)="openUpgradeModal()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 5v14M5 12h14"></path>
+                    </svg>
+                    Add Storage / Upgrade
+                </button>
             </div>
             <div class="panel-body">
                 <div class="progress-track" role="progressbar" [attr.aria-valuenow]="usagePercent()" aria-valuemin="0"
@@ -88,6 +106,23 @@
             </div>
         </section>
 
+        <!-- Tier breakdown + estimated cost -->
+        <section class="panel-card">
+            <div class="panel-header">
+                <div class="panel-title">Storage tiers and estimated cost</div>
+            </div>
+            <div class="panel-body">
+                <div class="stats-grid">
+                    <div class="stat-card"><div><div class="stat-label">Standard (R2)</div><div class="stat-value">{{ fmt(standardBytes()) }}</div></div></div>
+                    <div class="stat-card"><div><div class="stat-label">Infrequent Access (R2)</div><div class="stat-value">{{ fmt(infrequentAccessBytes()) }}</div></div></div>
+                    <div class="stat-card"><div><div class="stat-label">Saved by tiering / month</div><div class="stat-value">${{ savings() | number:'1.4-4' }}</div></div></div>
+                </div>
+                <p class="allocation-note">
+                    Estimated cost: ${{ estimatedCost() | number:'1.4-4' }}/month vs ${{ allStandardCost() | number:'1.4-4' }} if everything stayed on Standard.
+                </p>
+            </div>
+        </section>
+
         <!-- Upload to booking card -->
         <section class="panel-card">
             <div class="panel-header">
@@ -95,6 +130,7 @@
             </div>
             <div class="panel-body">
                 <div class="upload-row">
+                    <!-- Booking Dropdown -->
                     <div class="select-wrap">
                         <button type="button" role="combobox" [attr.aria-expanded]="isBookingMenuOpen()"
                             class="select-trigger" [class.select-trigger--open]="isBookingMenuOpen()"
@@ -123,6 +159,34 @@
                         </ul>
                     </div>
 
+                    <!-- File Class Dropdown (Client Gallery vs Internal Archive) -->
+                    <div class="select-wrap select-wrap--file-class">
+                        <button type="button" role="combobox" [attr.aria-expanded]="isFileClassMenuOpen()"
+                            class="select-trigger" [class.select-trigger--open]="isFileClassMenuOpen()"
+                            (click)="toggleFileClassMenu()">
+                            <span>{{ fileClassLabel }}</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" class="select-chevron" aria-hidden="true">
+                                <path d="m6 9 6 6 6-6"></path>
+                            </svg>
+                        </button>
+                        <ul class="select-panel" *ngIf="isFileClassMenuOpen()">
+                            <li *ngFor="let o of fileClassOptions" class="select-panel-item"
+                                [class.select-panel-item--selected]="o.value === selectedFileClass()"
+                                (click)="selectFileClass(o.value)">
+                                <span>{{ o.label }}</span>
+                                <svg *ngIf="o.value === selectedFileClass()" xmlns="http://www.w3.org/2000/svg" width="24"
+                                    height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round" class="select-check"
+                                    aria-hidden="true">
+                                    <path d="M20 6 9 17l-5-5"></path>
+                                </svg>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Raw Type Dropdown -->
                     <div class="select-wrap select-wrap--fixed">
                         <button type="button" role="combobox" [attr.aria-expanded]="isRawTypeMenuOpen()"
                             class="select-trigger" [class.select-trigger--open]="isRawTypeMenuOpen()"
@@ -149,6 +213,7 @@
                         </ul>
                     </div>
 
+                    <!-- Media Type Dropdown -->
                     <div class="select-wrap select-wrap--fixed">
                         <button type="button" role="combobox" [attr.aria-expanded]="isMediaTypeMenuOpen()"
                             class="select-trigger" [class.select-trigger--open]="isMediaTypeMenuOpen()"
@@ -175,6 +240,7 @@
                         </ul>
                     </div>
 
+                    <!-- Choose File Button -->
                     <button type="button" class="choose-file-btn"
                         [disabled]="isUploading()"
                         (click)="onChooseFile(fileInput)">
@@ -197,7 +263,6 @@
         <!-- Files list card -->
         <section class="panel-card">
             <div class="panel-header">
-                <!-- grid gap-2 md:grid-cols-[1fr_180px_auto] -->
                 <div class="files-filter-row">
                     <div class="field-with-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -256,8 +321,7 @@
                         </div>
                         <div class="file-info">
                             <div class="file-name">{{ file.name }}</div>
-                            <div class="file-meta">{{ file.customer }} / {{ file.bookingNumber || file.bookingId }} / {{ file.sizeLabel }}
-                            </div>
+                            <div class="file-meta">{{ file.customer }} / {{ file.bookingNumber || file.bookingId }} / {{ file.sizeLabel }}</div>
                         </div>
                         <div class="file-badge">{{ file.badge }}</div>
                         <button *ngIf="file.action === 'download'" type="button" class="file-action-btn"
@@ -270,6 +334,10 @@
                                 <line x1="12" y1="15" x2="12" y2="3"></line>
                             </svg>
                             Download
+                        </button>
+                        <button *ngIf="file.action === 'restoring'" type="button" class="file-action-btn" style="opacity: 0.7; cursor: wait;" disabled>
+                            <span class="spinner-icon"></span>
+                            Restoring...
                         </button>
                         <button *ngIf="file.action === 'restore'" type="button" class="file-action-btn"
                             (click)="onRestore(file)">
@@ -288,5 +356,72 @@
                 </div>
             </div>
         </section>
+
+        <!-- Upgrade / Top-up Modal -->
+        <div *ngIf="isUpgradeModalOpen()" class="modal-overlay" style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px;">
+            <div class="panel-card" style="width: 100%; max-width: 520px; background: var(--card-bg); border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); overflow: hidden;">
+                <div class="panel-header panel-header--row" style="border-bottom: 1px solid var(--border-color); padding: 16px 20px;">
+                    <div class="panel-title" style="font-size: 18px; font-weight: 600;">Upgrade Storage or Buy Top-Up</div>
+                    <button type="button" (click)="closeUpgradeModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--muted-fg);">&times;</button>
+                </div>
+                
+                <div class="panel-body" style="padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+                    <!-- Tab Selector -->
+                    <div style="display: flex; gap: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                        <button type="button" (click)="activeUpgradeTab.set('topup')" 
+                            [style.border-bottom]="activeUpgradeTab() === 'topup' ? '2px solid var(--brand)' : 'none'"
+                            [style.color]="activeUpgradeTab() === 'topup' ? 'var(--brand)' : 'var(--muted-fg)'"
+                            style="background: none; border: none; padding: 8px 12px; font-weight: 600; cursor: pointer;">
+                            One-Time Top-Up Block
+                        </button>
+                        <button type="button" (click)="activeUpgradeTab.set('upgrade')" 
+                            [style.border-bottom]="activeUpgradeTab() === 'upgrade' ? '2px solid var(--brand)' : 'none'"
+                            [style.color]="activeUpgradeTab() === 'upgrade' ? 'var(--brand)' : 'var(--muted-fg)'"
+                            style="background: none; border: none; padding: 8px 12px; font-weight: 600; cursor: pointer;">
+                            Monthly Plan Upgrade
+                        </button>
+                    </div>
+
+                    <!-- Top-Up Tab Content -->
+                    <div *ngIf="activeUpgradeTab() === 'topup'" style="display: flex; flex-direction: column; gap: 12px;">
+                        <label style="font-size: 13px; font-weight: 500; color: var(--fg);">Select Top-Up Storage Block:</label>
+                        <select class="text-input" [ngModel]="selectedTopupGB()" (ngModelChange)="selectedTopupGB.set($event)" style="padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg); color: var(--fg);">
+                            <option *ngFor="let opt of topupOptions" [value]="opt.gb">{{ opt.label }}</option>
+                        </select>
+                        <p style="font-size: 12px; color: var(--muted-fg); margin: 0;">
+                            * One-time storage blocks expand your quota immediately without altering your recurring subscription.
+                        </p>
+                    </div>
+
+                    <!-- Plan Upgrade Tab Content -->
+                    <div *ngIf="activeUpgradeTab() === 'upgrade'" style="display: flex; flex-direction: column; gap: 12px;">
+                        <label style="font-size: 13px; font-weight: 500; color: var(--fg);">Choose Subscription Plan:</label>
+                        <select class="text-input" [ngModel]="selectedPlanTier()" (ngModelChange)="selectedPlanTier.set($event)" style="padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg); color: var(--fg);">
+                            <option *ngFor="let opt of planOptions" [value]="opt.name">{{ opt.label }}</option>
+                        </select>
+                    </div>
+
+                    <!-- Manual Payment Instructions -->
+                    <div style="background: var(--muted-bg); padding: 12px; border-radius: 8px; font-size: 13px; border: 1px solid var(--border-color);">
+                        <div style="font-weight: 600; margin-bottom: 4px;">Manual Payment Instructions:</div>
+                        <div>Transfer to UPI: <code style="font-weight: bold;">billing@wedflow</code> (or Bank NEFT)</div>
+                        <div style="font-size: 11px; color: var(--muted-fg); margin-top: 4px;">* Pricing will be confirmed upon review. Enter your UTR / Reference ID below:</div>
+                    </div>
+
+                    <!-- Transaction Reference Input -->
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <label style="font-size: 13px; font-weight: 500; color: var(--fg);">Payment Transaction Ref / UTR:</label>
+                        <input class="text-input" placeholder="e.g. UPI / UTR 123456789" [ngModel]="paymentReference()" (ngModelChange)="paymentReference.set($event)" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg); color: var(--fg);" />
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="button" class="choose-file-btn" [disabled]="isSubmittingUpgrade()" (click)="submitUpgradeRequest()" style="width: 100%; justify-content: center; margin-top: 8px;">
+                        <span *ngIf="isSubmittingUpgrade()" class="spinner-icon"></span>
+                        {{ isSubmittingUpgrade() ? 'Submitting Request...' : 'Submit Upgrade Request' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
     </div>
 </main>

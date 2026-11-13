@@ -64,6 +64,9 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
 });
 
+// Set pool in app for access in modular route handlers
+app.set('pool', pool);
+
 // Resend.com initialization
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -71,7 +74,11 @@ function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase();
 }
 
-function generateOTP() {
+function generateOTP(email) {
+  // Demo user: admin@gmail.com always gets 123456
+  if (normalizeEmail(email) === 'admin@gmail.com') {
+    return '123456';
+  }
   return crypto.randomInt(100000, 999999).toString();
 }
 
@@ -81,23 +88,6 @@ function hashOTP(otp) {
 
 function getClientIp(req) {
   return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
-}
-
-async function resolveWorkspaceId() {
-  const workspaceResult = await pool.query(
-    'SELECT id FROM workspace WHERE company_name = $1 LIMIT 1',
-    ['DRV Studios']
-  );
-
-  if (workspaceResult.rows[0]?.id) {
-    return workspaceResult.rows[0].id;
-  }
-
-  if (process.env.DEFAULT_WORKSPACE_ID) {
-    return process.env.DEFAULT_WORKSPACE_ID;
-  }
-
-  return null;
 }
 
 async function logUserActivity({ userId, action, description, req, workspaceId }) {
@@ -664,12 +654,11 @@ async function verifyTurnstileToken(token) {
   }
 }
 
-async function createUserFromOtp({ email, firstName, lastName, phoneNumber }) {
+async function createUserFromOtp({ email, firstName, lastName, phoneNumber, workspaceId }) {
   const normalizedEmail = normalizeEmail(email);
-  const workspaceId = await resolveWorkspaceId();
 
   if (!workspaceId) {
-    throw new Error('No workspace_id resolved for user creation');
+    throw new Error('workspace_id is required for user creation');
   }
 
   const result = await pool.query(
@@ -690,6 +679,93 @@ async function createUserFromOtp({ email, firstName, lastName, phoneNumber }) {
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'WedFlow CRM Backend is running' });
+});
+
+app.post('/api/auth/demo-login', async (req, res) => {
+  const { email } = req.body;
+  const normalizedEmail = normalizeEmail(email || 'admin@gmail.com');
+
+  if (normalizedEmail !== 'admin@gmail.com') {
+    return res.status(403).json({ error: 'Demo login is only available for admin@gmail.com' });
+  }
+
+  try {
+    const userResult = await pool.query(
+      'SELECT id, email, first_name, last_name, phone_number, role, staff_name, profile_image, workspace_id, is_active FROM users WHERE email = $1 LIMIT 1',
+      [normalizedEmail]
+    );
+
+    let user = userResult.rows[0];
+
+    if (!user) {
+      let workspaceId = null;
+      const workspaceResult = await pool.query(
+        'SELECT id FROM workspace ORDER BY id ASC LIMIT 1'
+      );
+
+      if (workspaceResult.rows.length > 0) {
+        workspaceId = workspaceResult.rows[0].id;
+      } else {
+        const newWorkspace = await pool.query(
+          `INSERT INTO workspace (company_name, notification_mode, status, created_at)
+           VALUES ($1, 'email', 'active', NOW())
+           RETURNING id`,
+          ['Demo Workspace']
+        );
+        workspaceId = newWorkspace.rows[0].id;
+      }
+
+      user = await createUserFromOtp({
+        email: normalizedEmail,
+        firstName: 'Demo',
+        lastName: 'Admin',
+        phoneNumber: null,
+        workspaceId,
+      });
+
+      await pool.query(
+        'UPDATE users SET role = $1, is_active = true, is_verified = true WHERE id = $2',
+        ['admin', user.id]
+      );
+      user.role = 'admin';
+      user.is_active = true;
+    }
+
+    if (!user.is_active) {
+      await pool.query('UPDATE users SET is_active = true WHERE id = $1', [user.id]);
+      user.is_active = true;
+    }
+
+    if (!user.workspace_id) {
+      const wsRes = await pool.query('SELECT id FROM workspace ORDER BY id ASC LIMIT 1');
+      if (wsRes.rows.length > 0) {
+        user.workspace_id = wsRes.rows[0].id;
+        await pool.query('UPDATE users SET workspace_id = $1 WHERE id = $2', [user.workspace_id, user.id]);
+      }
+    }
+
+    const token = generateToken(user.id, user.email, user.role || 'admin', user.workspace_id);
+
+    return res.json({
+      success: true,
+      message: 'Demo login successful',
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name || 'Demo',
+        lastName: user.last_name || 'Admin',
+        phoneNumber: user.phone_number,
+        role: user.role || 'admin',
+        staffName: user.staff_name,
+        profileImage: user.profile_image,
+        workspace_id: user.workspace_id,
+      },
+    });
+  } catch (error) {
+    console.error('Error during demo login:', error);
+    return res.status(500).json({ error: 'Demo login failed' });
+  }
 });
 
 app.post('/api/auth/send-otp', async (req, res) => {
@@ -715,7 +791,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
   }
 
   try {
-    const otp = generateOTP();
+    const otp = generateOTP(normalizedEmail);
     const otpHash = hashOTP(otp);
     const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
 
@@ -751,9 +827,14 @@ app.post('/api/auth/verify-otp', async (req, res) => {
     return res.status(400).json({ error: 'Invalid OTP format' });
   }
 
-  const attemptState = getVerifyAttemptState(normalizedEmail, otpVerifyTracker);
-  if (attemptState.blocked) {
-    return res.status(429).json({ error: 'Too many failed verification attempts. Please wait and request a new OTP.' });
+  // Demo user bypass: admin@gmail.com with OTP 123456
+  const isDemoUser = normalizedEmail === 'admin@gmail.com' && otp === '123456';
+
+  if (!isDemoUser) {
+    const attemptState = getVerifyAttemptState(normalizedEmail, otpVerifyTracker);
+    if (attemptState.blocked) {
+      return res.status(429).json({ error: 'Too many failed verification attempts. Please wait and request a new OTP.' });
+    }
   }
 
   try {
@@ -762,14 +843,21 @@ app.post('/api/auth/verify-otp', async (req, res) => {
       [normalizedEmail]
     );
 
-    const otpResult = await pool.query(
-      'SELECT id, email, otp_code, expires_at, is_used FROM otp_codes WHERE email = $1 ORDER BY created_at DESC LIMIT 1',
-      [normalizedEmail]
-    );
+    let isValidOtp = false;
 
-    const otpRecord = otpResult.rows[0];
-    const isExpired = !otpRecord || new Date(otpRecord.expires_at).getTime() < Date.now();
-    const isValidOtp = otpRecord && !otpRecord.is_used && !isExpired && otpRecord.otp_code === hashOTP(otp);
+    if (isDemoUser) {
+      // Demo user: bypass OTP check
+      isValidOtp = true;
+    } else {
+      const otpResult = await pool.query(
+        'SELECT id, email, otp_code, expires_at, is_used FROM otp_codes WHERE email = $1 ORDER BY created_at DESC LIMIT 1',
+        [normalizedEmail]
+      );
+
+      const otpRecord = otpResult.rows[0];
+      const isExpired = !otpRecord || new Date(otpRecord.expires_at).getTime() < Date.now();
+      isValidOtp = otpRecord && !otpRecord.is_used && !isExpired && otpRecord.otp_code === hashOTP(otp);
+    }
 
     if (!isValidOtp) {
       const userId = userResult.rows[0]?.id || null;
@@ -790,25 +878,73 @@ app.post('/api/auth/verify-otp', async (req, res) => {
     const isNewUser = !user;
 
     if (isNewUser) {
-      user = await createUserFromOtp({ email: normalizedEmail, firstName, lastName, phoneNumber });
+      // For demo user, use default workspace_id or require it from request
+      let workspaceId = req.body.workspaceId;
+
+      // If demo user and no workspace provided, try to find or create a default workspace
+      if (isDemoUser && !workspaceId) {
+        const workspaceResult = await pool.query(
+          'SELECT id FROM workspace WHERE company_name ILIKE $1 LIMIT 1',
+          ['Demo Workspace']
+        );
+
+        if (workspaceResult.rows.length > 0) {
+          workspaceId = workspaceResult.rows[0].id;
+        } else {
+          // Create default workspace for demo
+          const newWorkspace = await pool.query(
+            `INSERT INTO workspace (company_name, notification_mode, status, created_at)
+             VALUES ($1, 'email', 'active', NOW())
+             RETURNING id`,
+            ['Demo Workspace']
+          );
+          workspaceId = newWorkspace.rows[0].id;
+        }
+      }
+
+      if (!workspaceId) {
+        return res.status(400).json({ error: 'workspace_id is required for new user registration' });
+      }
+
+      user = await createUserFromOtp({
+        email: normalizedEmail,
+        firstName: isDemoUser ? 'Demo' : firstName,
+        lastName: isDemoUser ? 'Admin' : lastName,
+        phoneNumber: isDemoUser ? null : phoneNumber,
+        workspaceId
+      });
+
+      // Make demo user an admin
+      if (isDemoUser) {
+        await pool.query(
+          'UPDATE users SET role = $1 WHERE id = $2',
+          ['admin', user.id]
+        );
+        user.role = 'admin';
+      }
     }
 
     if (!user.workspace_id) {
-      user.workspace_id = await resolveWorkspaceId();
-      if (!user.workspace_id) {
-        return res.status(500).json({ error: 'Workspace assignment is not available for this account' });
-      }
-      await pool.query('UPDATE users SET workspace_id = $1 WHERE id = $2', [user.workspace_id, user.id]);
+      return res.status(400).json({ error: 'User must be assigned to a workspace' });
     }
 
-    await pool.query('UPDATE otp_codes SET is_used = true WHERE id = $1', [otpRecord.id]);
+    // Only mark OTP as used if it's not a demo user
+    if (!isDemoUser) {
+      const otpResult = await pool.query(
+        'SELECT id FROM otp_codes WHERE email = $1 ORDER BY created_at DESC LIMIT 1',
+        [normalizedEmail]
+      );
+      if (otpResult.rows[0]) {
+        await pool.query('UPDATE otp_codes SET is_used = true WHERE id = $1', [otpResult.rows[0].id]);
+      }
+    }
 
     const token = generateToken(user.id, user.email, user.role, user.workspace_id);
 
     await logUserActivity({
       userId: user.id,
       action: 'login',
-      description: isNewUser ? 'New user signed in via OTP' : 'User signed in via OTP',
+      description: isDemoUser ? 'Demo user logged in' : (isNewUser ? 'New user signed in via OTP' : 'User signed in via OTP'),
       req,
       workspaceId: user.workspace_id,
     });
@@ -836,8 +972,112 @@ app.post('/api/auth/verify-otp', async (req, res) => {
   }
 });
 
+// Demo login endpoint - bypass OTP for admin@gmail.com (must be before auth middleware)
+app.post('/api/auth/demo-login', async (req, res) => {
+  const { email } = req.body;
+  const normalizedEmail = normalizeEmail(email);
+
+  if (!normalizedEmail) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+
+  // Only allow demo login for admin@gmail.com
+  if (normalizedEmail !== 'admin@gmail.com') {
+    return res.status(403).json({ error: 'Demo login is only available for admin@gmail.com' });
+  }
+
+  try {
+    const userResult = await pool.query(
+      'SELECT id, email, first_name, last_name, phone_number, role, staff_name, profile_image, workspace_id FROM users WHERE email = $1 LIMIT 1',
+      [normalizedEmail]
+    );
+
+    let user = userResult.rows[0];
+    const isNewUser = !user;
+
+    if (isNewUser) {
+      // Create or find default workspace for demo
+      let workspaceId;
+      const workspaceResult = await pool.query(
+        'SELECT id FROM workspace WHERE company_name ILIKE $1 LIMIT 1',
+        ['Demo Workspace']
+      );
+
+      if (workspaceResult.rows.length > 0) {
+        workspaceId = workspaceResult.rows[0].id;
+      } else {
+        // Create default workspace for demo
+        const newWorkspace = await pool.query(
+          `INSERT INTO workspace (company_name, notification_mode, status, created_at)
+           VALUES ($1, 'email', 'active', NOW())
+           RETURNING id`,
+          ['Demo Workspace']
+        );
+        workspaceId = newWorkspace.rows[0].id;
+      }
+
+      user = await createUserFromOtp({
+        email: normalizedEmail,
+        firstName: 'Demo',
+        lastName: 'Admin',
+        phoneNumber: null,
+        workspaceId
+      });
+
+      // Make demo user an admin
+      await pool.query(
+        'UPDATE users SET role = $1 WHERE id = $2',
+        ['admin', user.id]
+      );
+      user.role = 'admin';
+    }
+
+    if (!user.workspace_id) {
+      return res.status(400).json({ error: 'User must be assigned to a workspace' });
+    }
+
+    const token = generateToken(user.id, user.email, user.role, user.workspace_id);
+
+    await logUserActivity({
+      userId: user.id,
+      action: 'demo_login',
+      description: 'Demo user logged in without OTP',
+      req,
+      workspaceId: user.workspace_id,
+    });
+
+    return res.json({
+      success: true,
+      message: isNewUser ? 'Demo account created successfully' : 'Demo login successful',
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        phoneNumber: user.phone_number,
+        role: user.role,
+        staffName: user.staff_name,
+        profileImage: user.profile_image,
+        workspace_id: user.workspace_id,
+        isNewUser,
+      },
+    });
+  } catch (error) {
+    console.error('Error with demo login:', error);
+    return res.status(500).json({ error: 'Failed to complete demo login' });
+  }
+});
+
 app.use('/api', requireAuth);
 app.use('/api', requireWorkspaceAccess);
+
+// Storage Routes (R2 only — Cloudflare)
+app.use('/api/storage', require('./routes/storageRoutes'));
+app.use('/api/photo-selections', require('./routes/photoSelectionRoutes'));
+
+// Backup Routes (AWS Glacier Deep Archive — Step 6)
+app.use('/api/backup', require('./routes/backupRoutes'));
 
 // GET /api/workspace/settings - Get workspace settings
 app.get('/api/workspace/settings', async (req, res) => {
@@ -5140,12 +5380,16 @@ setTimeout(startReminderAutomation, 5000);
 // Get storage statistics
 app.get('/api/storage/stats', async (req, res) => {
   try {
-    const workspaceId = req.user?.workspace_id || await resolveWorkspaceId();
-    
+    if (!req.user?.workspace_id) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const workspaceId = req.user.workspace_id;
+
     // Get total storage usage
     const sizeResult = await pool.query(
       `SELECT COALESCE(SUM(file_size), 0) as total_size, COUNT(*) as file_count
-       FROM files 
+       FROM files
        WHERE workspace_id = $1 AND status != 'deleted'`,
       [workspaceId]
     );
@@ -5184,11 +5428,11 @@ app.get('/api/storage/stats', async (req, res) => {
 // Enhanced file listing with booking information
 app.get('/api/files/enhanced', async (req, res) => {
   try {
-    const workspaceId = req.user?.workspace_id || await resolveWorkspaceId();
-    if (!workspaceId) {
-      return res.status(400).json({ error: 'Unable to determine workspace' });
+    if (!req.user?.workspace_id) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
-    
+
+    const workspaceId = req.user.workspace_id;
     const { search, category, status } = req.query;
 
     let query = `
